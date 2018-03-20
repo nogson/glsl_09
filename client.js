@@ -2,8 +2,10 @@ const createBackground = require('three-vignette-background');
 const Stats = require('stats.js');
 const glslify = require('glslify')
 
-const vertexShader = glslify('./src/js/shaders/particles/vertexShader.vert');
-const fragmentShader = glslify('./src/js/shaders/particles/fragmentShader.frag');
+const vertexMappingShader = glslify('./src/js/shaders/mapping/vertexShader.vert');
+const fragmentMappingShader = glslify('./src/js/shaders/mapping/fragmentShader.frag');
+const vertexPointShader = glslify('./src/js/shaders/point/vertexShader.vert');
+const fragmentPointShader = glslify('./src/js/shaders/point/fragmentShader.frag');
 
 const CLOCK = new THREE.Clock();
 let ww = window.innerWidth;
@@ -32,7 +34,7 @@ let background = createBackground({
   noiseAlpha:0.1,
   colors:[ '#000000', '#000000' ]
 });
-app.scene.add(background)
+//app.scene.add(background)
 
 //LIGHTS
 let light = new THREE.AmbientLight(0xffffff, 1.0);
@@ -46,7 +48,8 @@ app.camera.position.z = 1.5;
 let stats = new Stats();
 //body.appendChild(stats.dom);
 
-var sphere = new THREE.SphereBufferGeometry( 1, 15, 15 );
+
+var sphere = new THREE.SphereBufferGeometry( 0.5, 15, 15 );
 
 //Geometryを作成
 var geometry = new THREE.BufferGeometry();
@@ -68,20 +71,67 @@ geometry.addAttribute('position', new THREE.BufferAttribute(vertices, 3));
 geometry.setIndex(new THREE.BufferAttribute(index, 1));
 
 // Material作成
-let material = new THREE.ShaderMaterial({
+let material = new THREE.RawShaderMaterial({
   uniforms: {
    resolution:{
      type:'v2',
      value:new THREE.Vector2()
    }
   },
-  vertexShader: vertexShader,
-  fragmentShader: fragmentShader
+  vertexShader: vertexMappingShader,
+  fragmentShader: fragmentMappingShader
 });
+
+
 // Mesh作成
 let mesh = new THREE.Mesh(geometry, material);
 
+
+let rt = new THREE.WebGLRenderTarget(ww, wh, {
+  magFilter: THREE.NearestFilter,
+  minFilter: THREE.NearestFilter,
+  wrapS: THREE.ClampToEdgeWrapping,
+  wrapT: THREE.ClampToEdgeWrapping
+});
+
 app.scene.add(mesh);
+
+app.renderer.render(app.scene,app.camera,rt);
+
+
+
+for (let i = 0; i < vertices.length; i++) {
+  vertices[i] = 0;
+}
+
+const pointGeometry = new THREE.BufferGeometry();
+
+pointGeometry.addAttribute(
+  'position',
+  new THREE.BufferAttribute(vertices, 3)
+);
+
+const pointMaterial = new THREE.ShaderMaterial({
+  uniforms:  {
+    tData: {
+      type: 't',
+      value: rt
+    },
+     resolution:{
+      type:'v2',
+      value:new THREE.Vector2()
+    }
+  },
+  vertexShader: vertexPointShader,
+  fragmentShader: fragmentPointShader
+});
+
+const points = new THREE.Points(
+  pointGeometry,
+  pointMaterial
+);
+
+app.scene.add(points);
 
 render();
 
