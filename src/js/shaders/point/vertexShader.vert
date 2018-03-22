@@ -1,15 +1,14 @@
-attribute float index;
-
-uniform mat4      mvpMatrix;
-uniform sampler2D texture;
-
-const float frag = 1.0 / 16.0;
-const float texShift = 0.5 * frag;
+attribute vec3 position;
+attribute vec2 texCoord;
+uniform mat4 projectionMatrix; 
+uniform mat4 modelViewMatrix;
+varying vec3 vPositon; 
+uniform sampler2D tData;
+uniform vec2 resolution;
 
 void main(void){
-	float pu = fract(index * frag + texShift);
-	float pv = floor(index * frag) * frag + texShift;
-	vec3 tPosition = texture2D(texture, vec2(pu, pv)).rgb * 2.0 - 1.0;
-	gl_Position  = mvpMatrix * vec4(tPosition, 1.0);
-	gl_PointSize = 16.0;
+	vec4 p = texture2D(tData, texCoord);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(vec3(p.xyz*0.1), 1.0 );
+	vPositon = gl_Position.xyz;
+	gl_PointSize = 10.0;
 }
